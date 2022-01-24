@@ -7,22 +7,27 @@ using UnityEngine;
 public class FirstPersonController : MonoBehaviour
 {
     public bool canMove { get; private set; } = true;
-    public bool isSprinting => canSprint && sprintHeld;
+    public bool isSprinting => canSprint && playerControls.Player.Sprint.IsPressed();
+    public bool shouldJump => playerControls.Player.Jump.WasPressedThisFrame() && characterController.isGrounded;
 
     [Header("Functional Options")] 
     [SerializeField] private bool canSprint = true;
+    [SerializeField] private bool canJump = true;
     
     [Header("Movement Parameters")] 
     [SerializeField] private float walkSpeed = 3.0f;
     [SerializeField] private float sprintSpeed = 6.0f;
-    [SerializeField] private float gravity = 30.0f;
-    
+
     [Header("Movement Parameters")] 
     [SerializeField, Range(1, 10)] private float lookXSpeed = 2.0f;
     [SerializeField, Range(1, 10)] private float lookYSpeed = 2.0f;
     [SerializeField, Range(1, 100)] private float upperLookLimit = 80.0f;
     [SerializeField, Range(1, 100)] private float lowerLookLimit = 80.0f;
 
+    [Header("Jumping Parameters")] 
+    [SerializeField] private float jumpForce = 8.0f;
+    [SerializeField] private float gravity = 30.0f;
+    
     private Camera playerCamera;
     private CharacterController characterController;
     private Vector3 moveDirection;
@@ -30,13 +35,11 @@ public class FirstPersonController : MonoBehaviour
 
     private float rotationX = 0;
     public PlayerInput playerControls;
-    bool sprintHeld;
     private void Awake()
     {
         playerControls = new PlayerInput();
         playerControls.Player.Movement.performed += context => inputMovement = context.ReadValue<Vector2>();
         playerControls.Player.Look.performed += context => inputView = context.ReadValue<Vector2>();
-        playerControls.Player.Sprint.performed += context => sprintHeld = true;
     }
 
     //Enable controls on startup
@@ -67,6 +70,10 @@ public class FirstPersonController : MonoBehaviour
         {
             HandleMovementInput();
             HandleMouseLook();
+            if (canJump)
+            {
+                HandleJump();
+            }
             ApplyFinalMovement();
         }
     }
@@ -75,8 +82,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleMovementInput()
     {
-        currentInput = new Vector2((isSprinting ? walkSpeed : sprintSpeed) * inputMovement.x, 
-            (isSprinting ? walkSpeed : sprintSpeed) * inputMovement.y);
+        currentInput = new Vector2((isSprinting ? sprintSpeed : walkSpeed) * inputMovement.y, 
+            (isSprinting ? sprintSpeed : walkSpeed) * inputMovement.x);
         float moveDirectionY = moveDirection.y;
         moveDirection = (transform.TransformDirection(Vector3.forward) * currentInput.x) +
                         (transform.TransformDirection(Vector3.right) * currentInput.y);
@@ -101,6 +108,13 @@ public class FirstPersonController : MonoBehaviour
         characterController.Move(moveDirection * Time.deltaTime);
     }
 
+    private void HandleJump()
+    {
+        if (shouldJump)
+        {
+            moveDirection.y = jumpForce;
+        }
+    }
     #endregion
 }
 
