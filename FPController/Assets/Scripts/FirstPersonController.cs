@@ -7,9 +7,14 @@ using UnityEngine;
 public class FirstPersonController : MonoBehaviour
 {
     public bool canMove { get; private set; } = true;
+    public bool isSprinting => canSprint && sprintHeld;
 
+    [Header("Functional Options")] 
+    [SerializeField] private bool canSprint = true;
+    
     [Header("Movement Parameters")] 
     [SerializeField] private float walkSpeed = 3.0f;
+    [SerializeField] private float sprintSpeed = 6.0f;
     [SerializeField] private float gravity = 30.0f;
     
     [Header("Movement Parameters")] 
@@ -25,12 +30,13 @@ public class FirstPersonController : MonoBehaviour
 
     private float rotationX = 0;
     public PlayerInput playerControls;
-    
+    bool sprintHeld;
     private void Awake()
     {
         playerControls = new PlayerInput();
         playerControls.Player.Movement.performed += context => inputMovement = context.ReadValue<Vector2>();
         playerControls.Player.Look.performed += context => inputView = context.ReadValue<Vector2>();
+        playerControls.Player.Sprint.performed += context => sprintHeld = true;
     }
 
     //Enable controls on startup
@@ -69,7 +75,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleMovementInput()
     {
-        currentInput = new Vector2(walkSpeed * inputMovement.x, walkSpeed * inputMovement.y);
+        currentInput = new Vector2((isSprinting ? walkSpeed : sprintSpeed) * inputMovement.x, 
+            (isSprinting ? walkSpeed : sprintSpeed) * inputMovement.y);
         float moveDirectionY = moveDirection.y;
         moveDirection = (transform.TransformDirection(Vector3.forward) * currentInput.x) +
                         (transform.TransformDirection(Vector3.right) * currentInput.y);
